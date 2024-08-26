@@ -24,6 +24,7 @@
 using namespace std;
 
 int main() {
+  setlocale(LC_ALL, "Russian");
   cout << "==============================" << endl;
   cout << "Программа Сумматор." << endl;
   cout << "==============================" << endl;
