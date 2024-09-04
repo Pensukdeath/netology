@@ -54,7 +54,6 @@ int main(){
     return 0;
   } else if (num < 20){
     for (int i = 0; i < num; i++){
-      fibonacci_20(num);
       cout << fibonacci_20(i) << " ";
     }
   } else {
