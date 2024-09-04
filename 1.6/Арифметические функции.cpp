@@ -10,7 +10,7 @@
     int s = sum(a, b);
     int dif = diff(a, b);
     int mult = multiplication(a, b);
-    double div = division(a, b);
+    double div = division(static_cast<double>(a), b);
 
     std::cout << a << " + " << b << " = " << s << std::endl;
     std::cout << a << " - " << b << " = " << dif << std::endl;
