@@ -104,27 +104,31 @@ int livingCells = 0;
 void initUniverse() {
   ifstream file("in.txt");
   file >> rows >> cols;
-  // Создаем двумерный массив для вселенной
-  universe = new char *[rows];
-  for (int i = 0; i < rows; i++) {
-    universe[i] = new char[cols];
-    for (int j = 0; j < cols; j++) {
-      universe[i][j] = '-'; // Инициализируем все клетки как "мертвые"
+  if (file.is_open()) {
+    // Создаем двумерный массив для вселенной
+    universe = new char *[rows];
+    for (int i = 0; i < rows; i++) {
+      universe[i] = new char[cols];
+      for (int j = 0; j < cols; j++) {
+        universe[i][j] = '-'; // Инициализируем все клетки как "мертвые"
+      }
     }
+    int row, col;
+    // Читаем координаты живых клеток из файла
+    while (file >> row >> col) {
+      universe[row][col] = '*'; // Живая клетка
+      livingCells++;
+    }
+    file.close();
+  } else {
+    cout << "Не удалось открыть файл in.txt" << endl;
   }
-  int row, col;
-  // Читаем координаты живых клеток из файла
-  while (file >> row >> col) {
-    universe[row][col] = '*'; // Живая клетка
-    livingCells++;
-  }
-  file.close();
 }
 
 // Вывод текущего состояния вселенной
 void printUniverse() {
   cout << "=====================================================" << endl;
-  cout << "Генерация: " << generation << " | "
+  cout << "Генерация №: " << generation << " | "
        << "Живых клеток: " << livingCells << endl;
   cout << "=====================================================" << endl;
   for (int i = 0; i < rows; i++) {
@@ -200,9 +204,21 @@ void nextGeneration() {
   generation++;
   if (livingCells == 0 || stable) {
     cout << "=====================================================" << endl;
-    cout << "Игра окончена. Генераций до завершения: " << generation - 1
-         << endl;
+    cout << "Игра окончена. Генерация №: " << generation << endl;
     cout << "=====================================================" << endl;
+    // Проверка на разные концовки.
+    if (livingCells == 0) {
+      cout << "Вселенная погибла из-за отсутствия живых клеток." << endl;
+    } else {
+      cout << "Вселенная стабильна. Последняя генерация:" << endl;
+    }
+    cout << "=====================================================" << endl;
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        cout << universe[i][j] << " ";
+      }
+      cout << endl;
+    }
     exit(0);
   }
 }
