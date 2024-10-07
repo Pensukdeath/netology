@@ -196,10 +196,6 @@ void nextGeneration() {
     if (!stable)
       break;
   }
-  for (int i = 0; i < rows; i++) {
-    delete[] universe[i];
-  }
-  delete[] universe;
   universe = newUniverse;
   generation++;
   if (livingCells == 0 || stable) {
@@ -219,6 +215,16 @@ void nextGeneration() {
       }
       cout << endl;
     }
+    // Чистка памяти
+    for (int i = 0; i < rows; i++) {
+      delete[] newUniverse[i];
+    }
+    delete[] newUniverse;
+
+    for (int i = 0; i < rows; i++) {
+      delete[] universe[i];
+    }
+    delete[] universe;
     exit(0);
   }
 }
