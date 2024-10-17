@@ -88,6 +88,7 @@
   В конце используйте созданные операции для организации игры по описанному
   алгоритму.
 */
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <unistd.h>
@@ -103,26 +104,34 @@ int livingCells = 0;
 // Инициализация вселенной
 void initUniverse() {
   ifstream file("in.txt");
-  file >> rows >> cols;
-  if (file.is_open()) {
-    // Создаем двумерный массив для вселенной
-    universe = new char *[rows];
-    for (int i = 0; i < rows; i++) {
-      universe[i] = new char[cols];
-      for (int j = 0; j < cols; j++) {
-        universe[i][j] = '-'; // Инициализируем все клетки как "мертвые"
-      }
-    }
-    int row, col;
-    // Читаем координаты живых клеток из файла
-    while (file >> row >> col) {
-      universe[row][col] = '*'; // Живая клетка
-      livingCells++;
-    }
-    file.close();
-  } else {
+  if (!file.is_open()) {
     cout << "Не удалось открыть файл in.txt" << endl;
+    exit(1);
   }
+
+  file >> rows >> cols;
+  if (rows <= 0 || cols <= 0) {
+    cout << "Некорректные размеры вселенной." << endl;
+    exit(1);
+  }
+
+  universe = new char *[rows];
+  for (int i = 0; i < rows; i++) {
+    universe[i] = new char[cols];
+    fill(universe[i], universe[i] + cols, '-');
+  }
+
+  int row, col;
+  while (file >> row >> col) {
+    if (row >= 0 && row < rows && col >= 0 && col < cols) {
+      universe[row][col] = '*';
+      livingCells++;
+    } else {
+      cout << "Некорректные координаты живой клетки: " << row << ", " << col
+           << endl;
+    }
+  }
+  file.close();
 }
 
 // Вывод текущего состояния вселенной
@@ -137,8 +146,8 @@ void printUniverse() {
     }
     cout << endl;
   }
-  sleep(1); // Ожидание перед генерацией следующего поколения
-  cout << "\033c"; // Для очистки консоли
+  sleep(1);
+  cout << "\033c"; // Очистка консоли
 }
 
 // Подсчет живых соседей для клетки
@@ -146,6 +155,8 @@ int countLivingNeighbors(int row, int col) {
   int count = 0;
   for (int i = -1; i <= 1; i++) {
     for (int j = -1; j <= 1; j++) {
+      if (i == 0 && j == 0)
+        continue; // Пропускаем саму клетку
       int newRow = row + i;
       int newCol = col + j;
       if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
@@ -155,78 +166,94 @@ int countLivingNeighbors(int row, int col) {
       }
     }
   }
-  if (universe[row][col] == '*') {
-    count--;
-  }
   return count;
 }
 
 // Переход к следующему поколению
-void nextGeneration() {
+bool nextGeneration() {
   char **newUniverse = new char *[rows];
   for (int i = 0; i < rows; i++) {
     newUniverse[i] = new char[cols];
+  }
+
+  int newLivingCells = 0; // Счетчик живых клеток в новом поколении
+
+  for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
       int livingNeighbors = countLivingNeighbors(i, j);
       if (universe[i][j] == '*') {
+        // Живая клетка
         if (livingNeighbors < 2 || livingNeighbors > 3) {
           newUniverse[i][j] = '-'; // Клетка умирает
-          livingCells--;
         } else {
           newUniverse[i][j] = '*'; // Клетка живет
+          newLivingCells++;
         }
       } else {
+        // Мёртвая клетка
         if (livingNeighbors == 3) {
           newUniverse[i][j] = '*'; // Клетка рождается
-          livingCells++;
+          newLivingCells++;
         } else {
-          newUniverse[i][j] = '-'; // Клетка умирает
+          newUniverse[i][j] = '-'; // Клетка остаётся мёртвой
         }
       }
     }
   }
+
+  // Проверка стабильности конфигурации
   bool stable = true;
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
       if (universe[i][j] != newUniverse[i][j]) {
-        stable = false; // Конфигурация не стабильна
+        stable = false; // Если есть изменения, конфигурация не стабильна
         break;
       }
     }
     if (!stable)
       break;
   }
-  universe = newUniverse;
+
+  // Освобождение памяти старого состояния
+  for (int i = 0; i < rows; i++) {
+    delete[] universe[i];
+  }
+  delete[] universe;
+
+  universe = newUniverse; // Присваиваем новое состояние
+  livingCells = newLivingCells; // Обновляем количество живых клеток
   generation++;
-  if (livingCells == 0 || stable) {
+
+  // Проверяем условия окончания игры
+  if (livingCells == 0) {
     cout << "=====================================================" << endl;
     cout << "Игра окончена. Генерация №: " << generation << endl;
     cout << "=====================================================" << endl;
-    // Проверка на разные концовки.
-    if (livingCells == 0) {
-      cout << "Вселенная погибла из-за отсутствия живых клеток." << endl;
-    } else {
-      cout << "Вселенная стабильна. Последняя генерация:" << endl;
-    }
-    cout << "=====================================================" << endl;
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        cout << universe[i][j] << " ";
-      }
-      cout << endl;
-    }
-    // Чистка памяти
+    cout << "Вселенная погибла из-за отсутствия живых клеток." << endl;
+    printUniverse();
+    sleep(10);
+    // Освобождение памяти для newUniverse
     for (int i = 0; i < rows; i++) {
       delete[] newUniverse[i];
     }
     delete[] newUniverse;
-
+    exit(0);
+  } else if (stable) {
+    cout << "=====================================================" << endl;
+    cout << "Игра окончена. Генерация №: " << generation << endl;
+    cout << "=====================================================" << endl;
+    cout << "Вселенная стабильна." << endl;
+    printUniverse();
+    sleep(10);
+    // Освобождение памяти для newUniverse
     for (int i = 0; i < rows; i++) {
-      delete[] universe[i];
+      delete[] newUniverse[i];
     }
-    delete[] universe;
+    delete[] newUniverse;
     exit(0);
   }
+
+  return true; // Если игра продолжается
 }
 
 // Цикл для игры
@@ -234,7 +261,8 @@ void Game() {
   initUniverse();
   printUniverse();
   while (true) {
-    nextGeneration();
+    if (!nextGeneration())
+      break;
     printUniverse();
   }
 }
